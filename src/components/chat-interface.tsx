@@ -235,7 +235,7 @@ export function ChatInterface() {
         />
       )}
 
-      <div className="flex flex-col h-screen w-full max-w-3xl mx-auto">
+      <div className="flex flex-col h-screen w-full max-w-3xl mx-auto overflow-hidden">
         {/* WhatsApp Header */}
         <header className="bg-[var(--wa-header)] text-white px-4 py-3 flex items-center gap-3 shadow-md">
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
