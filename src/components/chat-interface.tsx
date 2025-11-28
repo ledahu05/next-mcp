@@ -14,13 +14,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Calculator, Loader2, Mic } from "lucide-react";
+import { Send, Calculator, Loader2, Mic, Paperclip, FileImage, FileText } from "lucide-react";
 import { AudioRecorder } from "@/components/audio-recorder";
+import { FileUploader, type FileUploadResult } from "@/components/file-uploader";
 import type { CalculationResult } from "@/lib/types";
 
 export function ChatInterface() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+  const [showFileUploader, setShowFileUploader] = useState(false);
 
   const { messages, status, sendMessage, error } = useChat({
     onError: (err) => {
@@ -92,6 +94,23 @@ export function ChatInterface() {
     });
   }, [sendMessage]);
 
+  // Handle file upload completion
+  const handleFileUpload = useCallback((file: FileUploadResult) => {
+    setShowFileUploader(false);
+
+    // Send the document with a prompt to extract and calculate
+    sendMessage({
+      text: input.trim() || "Please analyze this document, extract any numbers, and help me with calculations based on what you find.",
+      files: [{
+        type: 'file',
+        mediaType: file.mediaType,
+        url: file.dataUrl,
+        filename: file.filename,
+      }],
+    });
+    setInput("");
+  }, [sendMessage, input]);
+
   // Get text content from message parts
   const getMessageText = (message: typeof messages[number]): string => {
     // AI SDK 5.x uses parts array for message content
@@ -144,6 +163,16 @@ export function ChatInterface() {
   // Check if a file is audio
   const isAudioFile = (mediaType: string): boolean => {
     return mediaType.startsWith("audio/");
+  };
+
+  // Check if a file is an image
+  const isImageFile = (mediaType: string): boolean => {
+    return mediaType.startsWith("image/");
+  };
+
+  // Check if a file is a PDF
+  const isPdfFile = (mediaType: string): boolean => {
+    return mediaType === "application/pdf";
   };
 
   // Render tool result
@@ -261,6 +290,28 @@ export function ChatInterface() {
                     </div>
                   )}
 
+                  {/* Image attachments */}
+                  {fileParts.filter(f => isImageFile(f.mediaType)).map((file, index) => (
+                    <div key={`image-${index}`} className="mb-2">
+                      <img
+                        src={file.url}
+                        alt={file.filename || "Uploaded image"}
+                        className="max-w-full max-h-48 rounded-md object-contain"
+                      />
+                      {file.filename && (
+                        <p className="text-xs mt-1 opacity-75">{file.filename}</p>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* PDF attachments */}
+                  {fileParts.filter(f => isPdfFile(f.mediaType)).map((file, index) => (
+                    <div key={`pdf-${index}`} className="mb-2 flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      <span className="text-sm">{file.filename || "PDF Document"}</span>
+                    </div>
+                  ))}
+
                   {/* Message content */}
                   {text && <p className="whitespace-pre-wrap">{text}</p>}
 
@@ -294,36 +345,59 @@ export function ChatInterface() {
 
       {/* Input Area */}
       <div className="border-t p-4">
+        {/* File Uploader */}
+        {showFileUploader && (
+          <div className="mb-4">
+            <FileUploader
+              onFileSelect={handleFileUpload}
+              disabled={isLoading}
+            />
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask me to calculate something..."
+            placeholder={showFileUploader ? "Add a question about the document (optional)..." : "Ask me to calculate something..."}
             className="min-h-[60px] resize-none"
             disabled={isLoading}
           />
           <div className="flex flex-col gap-2">
-            <AudioRecorder
-              onRecordingComplete={handleAudioRecording}
-              disabled={isLoading}
-            />
+            <div className="flex gap-1">
+              <Button
+                type="button"
+                variant={showFileUploader ? "default" : "outline"}
+                size="icon"
+                onClick={() => setShowFileUploader(!showFileUploader)}
+                disabled={isLoading}
+                className="h-[28px] w-[28px]"
+                title="Upload image or PDF"
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <AudioRecorder
+                onRecordingComplete={handleAudioRecording}
+                disabled={isLoading}
+              />
+            </div>
             <Button
               type="submit"
               size="icon"
               disabled={!input.trim() || isLoading}
-              className="h-[60px] w-[60px]"
+              className="h-[28px] w-[60px]"
             >
               {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4" />
               )}
             </Button>
           </div>
         </form>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          Press Enter to send, Shift+Enter for new line, or use the microphone
+          Press Enter to send, Shift+Enter for new line, use mic for voice, or attach documents
         </p>
       </div>
     </div>
