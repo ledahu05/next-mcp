@@ -87,16 +87,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Create use-audio-recorder.ts custom hook with MediaRecorder API in hooks/use-audio-recorder.ts
-- [ ] T028 [US2] Implement startRecording, stopRecording, and state management in hooks/use-audio-recorder.ts
-- [ ] T029 [US2] Handle microphone permission requests and errors in hooks/use-audio-recorder.ts
-- [ ] T030 [US2] Create audio-recorder.tsx component with microphone button in components/audio-recorder.tsx
-- [ ] T031 [US2] Implement recording indicator (visual feedback) during recording in components/audio-recorder.tsx
-- [ ] T032 [US2] Convert audio blob to base64 data URL on recording complete in components/audio-recorder.tsx
-- [ ] T033 [US2] Integrate AudioRecorder into ChatInterface in components/chat-interface.tsx
-- [ ] T034 [US2] Send audio as experimental_attachments via useChat append in components/chat-interface.tsx
-- [ ] T035 [US2] Update system prompt to handle audio transcription in app/api/chat/route.ts
-- [ ] T036 [US2] Add toast notification for microphone permission denial in components/audio-recorder.tsx
+- [x] T027 [US2] Create use-audio-recorder.ts custom hook with MediaRecorder API in hooks/use-audio-recorder.ts
+- [x] T028 [US2] Implement startRecording, stopRecording, and state management in hooks/use-audio-recorder.ts
+- [x] T029 [US2] Handle microphone permission requests and errors in hooks/use-audio-recorder.ts
+- [x] T030 [US2] Create audio-recorder.tsx component with microphone button in components/audio-recorder.tsx
+- [x] T031 [US2] Implement recording indicator (visual feedback) during recording in components/audio-recorder.tsx
+- [x] T032 [US2] Convert audio blob to base64 data URL on recording complete in components/audio-recorder.tsx
+- [x] T033 [US2] Integrate AudioRecorder into ChatInterface in components/chat-interface.tsx
+- [x] T034 [US2] Send audio as files via useChat sendMessage in components/chat-interface.tsx
+- [x] T035 [US2] Update system prompt to handle audio transcription in app/api/chat/route.ts
+- [x] T036 [US2] Add toast notification for microphone permission denial in components/audio-recorder.tsx
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -110,16 +110,16 @@
 
 ### Implementation for User Story 3
 
-- [ ] T037 [US3] Create file-uploader.tsx component with drag-and-drop area in components/file-uploader.tsx
-- [ ] T038 [US3] Implement file input for click-to-upload in components/file-uploader.tsx
-- [ ] T039 [US3] Validate accepted file types (JPEG, PNG, PDF) in components/file-uploader.tsx
-- [ ] T040 [US3] Convert selected file to base64 data URL in components/file-uploader.tsx
-- [ ] T041 [US3] Display file preview thumbnail after selection in components/file-uploader.tsx
-- [ ] T042 [US3] Integrate FileUploader into ChatInterface in components/chat-interface.tsx
-- [ ] T043 [US3] Send document as experimental_attachments via useChat in components/chat-interface.tsx
-- [ ] T044 [US3] Update system prompt to extract numbers from documents in app/api/chat/route.ts
-- [ ] T045 [US3] Add toast notification for unsupported file formats in components/file-uploader.tsx
-- [ ] T046 [US3] Handle unreadable document errors with user-friendly message in components/file-uploader.tsx
+- [x] T037 [US3] Create file-uploader.tsx component with drag-and-drop area in components/file-uploader.tsx
+- [x] T038 [US3] Implement file input for click-to-upload in components/file-uploader.tsx
+- [x] T039 [US3] Validate accepted file types (JPEG, PNG, PDF) in components/file-uploader.tsx
+- [x] T040 [US3] Convert selected file to base64 data URL in components/file-uploader.tsx
+- [x] T041 [US3] Display file preview thumbnail after selection in components/file-uploader.tsx
+- [x] T042 [US3] Integrate FileUploader into ChatInterface in components/chat-interface.tsx
+- [x] T043 [US3] Send document as experimental_attachments via useChat in components/chat-interface.tsx
+- [x] T044 [US3] Update system prompt to extract numbers from documents in app/api/chat/route.ts
+- [x] T045 [US3] Add toast notification for unsupported file formats in components/file-uploader.tsx
+- [x] T046 [US3] Handle unreadable document errors with user-friendly message in components/file-uploader.tsx
 
 **Checkpoint**: All user stories should now be independently functional
 
