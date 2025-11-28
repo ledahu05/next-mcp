@@ -3,14 +3,12 @@
 /**
  * FileUploader Component
  * Drag-and-drop and click-to-upload component for images and PDFs
- * Converts files to base64 data URLs for AI processing
+ * Simplified version - immediately calls onFileSelect, parent handles preview
  */
 
 import { useState, useRef, useCallback, type DragEvent, type ChangeEvent } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { FileUp, X, FileImage, FileText } from "lucide-react";
+import { FileUp } from "lucide-react";
 
 const ACCEPTED_TYPES = {
   "image/jpeg": [".jpg", ".jpeg"],
@@ -34,7 +32,6 @@ export interface FileUploaderProps {
 
 export function FileUploader({ onFileSelect, disabled = false }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [preview, setPreview] = useState<FileUploadResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,7 +67,7 @@ export function FileUploader({ onFileSelect, disabled = false }: FileUploaderPro
   }, []);
 
   /**
-   * Process the selected file
+   * Process the selected file and immediately call onFileSelect
    */
   const processFile = useCallback(
     async (file: File) => {
@@ -88,7 +85,8 @@ export function FileUploader({ onFileSelect, disabled = false }: FileUploaderPro
           mediaType: file.type,
           filename: file.name,
         };
-        setPreview(result);
+        // Immediately pass to parent - parent handles the preview overlay
+        onFileSelect(result);
       } catch (err) {
         console.error("File processing error:", err);
         toast.error("File Error", {
@@ -98,7 +96,7 @@ export function FileUploader({ onFileSelect, disabled = false }: FileUploaderPro
         setIsProcessing(false);
       }
     },
-    [fileToDataUrl, validateFile]
+    [fileToDataUrl, validateFile, onFileSelect]
   );
 
   /**
@@ -163,81 +161,6 @@ export function FileUploader({ onFileSelect, disabled = false }: FileUploaderPro
     }
   }, [disabled, isProcessing]);
 
-  /**
-   * Clear the preview
-   */
-  const handleClear = useCallback(() => {
-    setPreview(null);
-  }, []);
-
-  /**
-   * Send the file
-   */
-  const handleSend = useCallback(() => {
-    if (preview) {
-      onFileSelect(preview);
-      setPreview(null);
-    }
-  }, [preview, onFileSelect]);
-
-  /**
-   * Get file icon based on type
-   */
-  const getFileIcon = (mediaType: string) => {
-    if (mediaType === "application/pdf") {
-      return <FileText className="h-8 w-8" />;
-    }
-    return <FileImage className="h-8 w-8" />;
-  };
-
-  // Show preview if file is selected
-  if (preview) {
-    return (
-      <Card className="p-4">
-        <div className="flex items-start gap-4">
-          {/* Preview thumbnail */}
-          <div className="flex-shrink-0">
-            {preview.mediaType.startsWith("image/") ? (
-              <img
-                src={preview.dataUrl}
-                alt="Preview"
-                className="h-20 w-20 object-cover rounded-md"
-              />
-            ) : (
-              <div className="h-20 w-20 bg-muted rounded-md flex items-center justify-center">
-                {getFileIcon(preview.mediaType)}
-              </div>
-            )}
-          </div>
-
-          {/* File info */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{preview.filename}</p>
-            <p className="text-xs text-muted-foreground">
-              {preview.mediaType === "application/pdf" ? "PDF Document" : "Image"}
-            </p>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleClear}
-              disabled={disabled}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <Button onClick={handleSend} disabled={disabled}>
-              Send
-            </Button>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  // Show drop zone
   return (
     <div
       onDragEnter={handleDragEnter}

@@ -3,7 +3,7 @@
 /**
  * ChatInterface Component
  * Main chat container with text input, message display, and tool invocation rendering
- * Supports text and voice input
+ * Supports text, voice, and document input with WhatsApp-style file preview
  * Updated for AI SDK 5.x
  */
 
@@ -14,15 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Calculator, Loader2, Mic, Paperclip, FileImage, FileText } from "lucide-react";
+import { Send, Calculator, Loader2, Mic, Paperclip, FileText } from "lucide-react";
 import { AudioRecorder } from "@/components/audio-recorder";
 import { FileUploader, type FileUploadResult } from "@/components/file-uploader";
+import { FilePreviewOverlay } from "@/components/file-preview-overlay";
 import type { CalculationResult } from "@/lib/types";
 
 export function ChatInterface() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const [showFileUploader, setShowFileUploader] = useState(false);
+  const [pendingFile, setPendingFile] = useState<FileUploadResult | null>(null);
 
   const { messages, status, sendMessage, error } = useChat({
     onError: (err) => {
@@ -94,22 +96,32 @@ export function ChatInterface() {
     });
   }, [sendMessage]);
 
-  // Handle file upload completion
-  const handleFileUpload = useCallback((file: FileUploadResult) => {
+  // Handle file selection - show preview overlay
+  const handleFileSelect = useCallback((file: FileUploadResult) => {
     setShowFileUploader(false);
+    setPendingFile(file);
+  }, []);
 
-    // Send the document with a prompt to extract and calculate
+  // Handle sending file from preview overlay
+  const handleFilePreviewSend = useCallback((caption: string) => {
+    if (!pendingFile) return;
+
     sendMessage({
-      text: input.trim() || "Please analyze this document, extract any numbers, and help me with calculations based on what you find.",
+      text: caption.trim() || "Please analyze this document, extract any numbers, and help me with calculations based on what you find.",
       files: [{
         type: 'file',
-        mediaType: file.mediaType,
-        url: file.dataUrl,
-        filename: file.filename,
+        mediaType: pendingFile.mediaType,
+        url: pendingFile.dataUrl,
+        filename: pendingFile.filename,
       }],
     });
-    setInput("");
-  }, [sendMessage, input]);
+    setPendingFile(null);
+  }, [sendMessage, pendingFile]);
+
+  // Handle closing preview overlay
+  const handleFilePreviewClose = useCallback(() => {
+    setPendingFile(null);
+  }, []);
 
   // Get text content from message parts
   const getMessageText = (message: typeof messages[number]): string => {
@@ -244,162 +256,174 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-2rem)] w-full max-w-3xl mx-auto">
-      {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center text-muted-foreground py-8">
-              <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">AI Calculator</p>
-              <p className="text-sm">
-                Ask me to calculate something! Try &quot;What is 25 plus 17?&quot;
-              </p>
-            </div>
-          )}
+    <>
+      {/* WhatsApp-style file preview overlay */}
+      {pendingFile && (
+        <FilePreviewOverlay
+          file={pendingFile}
+          onSend={handleFilePreviewSend}
+          onClose={handleFilePreviewClose}
+          disabled={isLoading}
+        />
+      )}
 
-          {messages.map((message) => {
-            const text = getMessageText(message);
-            const toolParts = getToolParts(message);
-            const fileParts = getFileParts(message);
-            console.log('[Chat] Rendering message:', message.id, 'role:', message.role, 'text:', text, 'toolParts:', toolParts.length, 'fileParts:', fileParts.length);
+      <div className="flex flex-col h-full max-h-[calc(100vh-2rem)] w-full max-w-3xl mx-auto">
+        {/* Messages Area */}
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {messages.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">AI Calculator</p>
+                <p className="text-sm">
+                  Ask me to calculate something! Try &quot;What is 25 plus 17?&quot;
+                </p>
+              </div>
+            )}
 
-            return (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+            {messages.map((message) => {
+              const text = getMessageText(message);
+              const toolParts = getToolParts(message);
+              const fileParts = getFileParts(message);
+              console.log('[Chat] Rendering message:', message.id, 'role:', message.role, 'text:', text, 'toolParts:', toolParts.length, 'fileParts:', fileParts.length);
+
+              return (
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                  key={message.id}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {/* Audio attachments */}
-                  {fileParts.filter(f => isAudioFile(f.mediaType)).length > 0 && (
-                    <div className="mb-2 space-y-2">
-                      {fileParts.filter(f => isAudioFile(f.mediaType)).map((_, index) => (
-                        <div key={`audio-${index}`} className="flex items-center gap-2">
-                          <Mic className="h-4 w-4" />
-                          <span className="text-sm">Voice message</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      message.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    {/* Audio attachments */}
+                    {fileParts.filter(f => isAudioFile(f.mediaType)).length > 0 && (
+                      <div className="mb-2 space-y-2">
+                        {fileParts.filter(f => isAudioFile(f.mediaType)).map((_, index) => (
+                          <div key={`audio-${index}`} className="flex items-center gap-2">
+                            <Mic className="h-4 w-4" />
+                            <span className="text-sm">Voice message</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                  {/* Image attachments */}
-                  {fileParts.filter(f => isImageFile(f.mediaType)).map((file, index) => (
-                    <div key={`image-${index}`} className="mb-2">
-                      <img
-                        src={file.url}
-                        alt={file.filename || "Uploaded image"}
-                        className="max-w-full max-h-48 rounded-md object-contain"
-                      />
-                      {file.filename && (
-                        <p className="text-xs mt-1 opacity-75">{file.filename}</p>
-                      )}
-                    </div>
-                  ))}
+                    {/* Image attachments */}
+                    {fileParts.filter(f => isImageFile(f.mediaType)).map((file, index) => (
+                      <div key={`image-${index}`} className="mb-2">
+                        <img
+                          src={file.url}
+                          alt={file.filename || "Uploaded image"}
+                          className="max-w-full max-h-48 rounded-md object-contain"
+                        />
+                        {file.filename && (
+                          <p className="text-xs mt-1 opacity-75">{file.filename}</p>
+                        )}
+                      </div>
+                    ))}
 
-                  {/* PDF attachments */}
-                  {fileParts.filter(f => isPdfFile(f.mediaType)).map((file, index) => (
-                    <div key={`pdf-${index}`} className="mb-2 flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      <span className="text-sm">{file.filename || "PDF Document"}</span>
-                    </div>
-                  ))}
+                    {/* PDF attachments */}
+                    {fileParts.filter(f => isPdfFile(f.mediaType)).map((file, index) => (
+                      <div key={`pdf-${index}`} className="mb-2 flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        <span className="text-sm">{file.filename || "PDF Document"}</span>
+                      </div>
+                    ))}
 
-                  {/* Message content */}
-                  {text && <p className="whitespace-pre-wrap">{text}</p>}
+                    {/* Message content */}
+                    {text && <p className="whitespace-pre-wrap">{text}</p>}
 
-                  {/* Tool results */}
-                  {toolParts.length > 0 && (
-                    <div className="mt-2 space-y-2">
-                      {toolParts.map((tool, index) => renderToolResult(tool, index))}
-                    </div>
-                  )}
+                    {/* Tool results */}
+                    {toolParts.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {toolParts.map((tool, index) => renderToolResult(tool, index))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Loading indicator */}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-muted rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Thinking...</span>
+                  </div>
                 </div>
               </div>
-            );
-          })}
+            )}
 
-          {/* Loading indicator */}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-lg p-3">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Thinking...</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Scroll anchor */}
-          <div ref={scrollRef} />
-        </div>
-      </ScrollArea>
-
-      {/* Input Area */}
-      <div className="border-t p-4">
-        {/* File Uploader */}
-        {showFileUploader && (
-          <div className="mb-4">
-            <FileUploader
-              onFileSelect={handleFileUpload}
-              disabled={isLoading}
-            />
+            {/* Scroll anchor */}
+            <div ref={scrollRef} />
           </div>
-        )}
+        </ScrollArea>
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={showFileUploader ? "Add a question about the document (optional)..." : "Ask me to calculate something..."}
-            className="min-h-[60px] resize-none"
-            disabled={isLoading}
-          />
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-1">
-              <Button
-                type="button"
-                variant={showFileUploader ? "default" : "outline"}
-                size="icon"
-                onClick={() => setShowFileUploader(!showFileUploader)}
-                disabled={isLoading}
-                className="h-[28px] w-[28px]"
-                title="Upload image or PDF"
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <AudioRecorder
-                onRecordingComplete={handleAudioRecording}
+        {/* Input Area */}
+        <div className="border-t p-4">
+          {/* File Uploader Drop Zone */}
+          {showFileUploader && (
+            <div className="mb-4">
+              <FileUploader
+                onFileSelect={handleFileSelect}
                 disabled={isLoading}
               />
             </div>
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!input.trim() || isLoading}
-              className="h-[28px] w-[60px]"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </form>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          Press Enter to send, Shift+Enter for new line, use mic for voice, or attach documents
-        </p>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex gap-2">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me to calculate something..."
+              className="min-h-[60px] resize-none"
+              disabled={isLoading}
+            />
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-1">
+                <Button
+                  type="button"
+                  variant={showFileUploader ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => setShowFileUploader(!showFileUploader)}
+                  disabled={isLoading}
+                  className="h-[28px] w-[28px]"
+                  title="Upload image or PDF"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <AudioRecorder
+                  onRecordingComplete={handleAudioRecording}
+                  disabled={isLoading}
+                />
+              </div>
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!input.trim() || isLoading}
+                className="h-[28px] w-[60px]"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </form>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Press Enter to send, Shift+Enter for new line, use mic for voice, or attach documents
+          </p>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
