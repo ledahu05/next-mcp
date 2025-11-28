@@ -2,8 +2,7 @@
 
 /**
  * ChatInterface Component
- * Main chat container with text input, message display, and tool invocation rendering
- * Supports text, voice, and document input with WhatsApp-style file preview
+ * WhatsApp-style chat interface with text, voice, and document input
  * Updated for AI SDK 5.x
  */
 
@@ -11,9 +10,7 @@ import { useChat } from "@ai-sdk/react";
 import { useRef, useEffect, useState, useCallback, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Calculator, Loader2, Mic, Paperclip, FileText } from "lucide-react";
 import { AudioRecorder } from "@/components/audio-recorder";
 import { FileUploader, type FileUploadResult } from "@/components/file-uploader";
@@ -22,6 +19,7 @@ import type { CalculationResult } from "@/lib/types";
 
 export function ChatInterface() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [input, setInput] = useState("");
   const [showFileUploader, setShowFileUploader] = useState(false);
   const [pendingFile, setPendingFile] = useState<FileUploadResult | null>(null);
@@ -35,6 +33,7 @@ export function ChatInterface() {
   });
 
   const isLoading = status === "streaming" || status === "submitted";
+  const hasInput = input.trim().length > 0;
 
   // Show error toast when error changes
   useEffect(() => {
@@ -44,12 +43,6 @@ export function ChatInterface() {
       });
     }
   }, [error]);
-
-  // Log messages for debugging
-  useEffect(() => {
-    console.log('[Chat] Messages updated:', JSON.stringify(messages, null, 2));
-    console.log('[Chat] Status:', status);
-  }, [messages, status]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -68,23 +61,19 @@ export function ChatInterface() {
   };
 
   // Handle keyboard shortcuts
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !isLoading && input.trim()) {
       e.preventDefault();
-      if (input.trim() && !isLoading) {
-        sendMessage({ text: input });
-        setInput("");
-      }
+      sendMessage({ text: input });
+      setInput("");
     }
   };
 
   // Handle audio recording completion
   const handleAudioRecording = useCallback((audioDataUrl: string) => {
-    // Extract the media type from the data URL
     const mediaTypeMatch = audioDataUrl.match(/^data:([^;]+);/);
     const mediaType = mediaTypeMatch ? mediaTypeMatch[1] : 'audio/webm';
 
-    // Send the audio as a file attachment with a prompt to transcribe and calculate
     sendMessage({
       text: "Please listen to this audio and perform the calculation I'm asking for.",
       files: [{
@@ -125,7 +114,6 @@ export function ChatInterface() {
 
   // Get text content from message parts
   const getMessageText = (message: typeof messages[number]): string => {
-    // AI SDK 5.x uses parts array for message content
     if (Array.isArray(message.parts)) {
       return message.parts
         .filter((part): part is { type: "text"; text: string } => part.type === "text")
@@ -135,7 +123,7 @@ export function ChatInterface() {
     return "";
   };
 
-  // Tool part type definition for AI SDK 5.x
+  // Tool part type definition
   type ToolPart = {
     type: "tool-call" | "tool-result" | "tool-error";
     toolCallId: string;
@@ -145,7 +133,6 @@ export function ChatInterface() {
     error?: unknown;
   };
 
-  // Get tool parts from message parts
   const getToolParts = (message: typeof messages[number]): ToolPart[] => {
     if (!Array.isArray(message.parts)) return [];
     return message.parts
@@ -156,7 +143,7 @@ export function ChatInterface() {
       .map((part) => part as unknown as ToolPart);
   };
 
-  // File part type for audio/document display
+  // File part type
   type FilePart = {
     type: "file";
     mediaType: string;
@@ -164,7 +151,6 @@ export function ChatInterface() {
     filename?: string;
   };
 
-  // Get file parts from message parts
   const getFileParts = (message: typeof messages[number]): FilePart[] => {
     if (!Array.isArray(message.parts)) return [];
     return message.parts
@@ -172,61 +158,43 @@ export function ChatInterface() {
       .map((part) => part as unknown as FilePart);
   };
 
-  // Check if a file is audio
-  const isAudioFile = (mediaType: string): boolean => {
-    return mediaType.startsWith("audio/");
-  };
-
-  // Check if a file is an image
-  const isImageFile = (mediaType: string): boolean => {
-    return mediaType.startsWith("image/");
-  };
-
-  // Check if a file is a PDF
-  const isPdfFile = (mediaType: string): boolean => {
-    return mediaType === "application/pdf";
-  };
+  const isAudioFile = (mediaType: string): boolean => mediaType.startsWith("audio/");
+  const isImageFile = (mediaType: string): boolean => mediaType.startsWith("image/");
+  const isPdfFile = (mediaType: string): boolean => mediaType === "application/pdf";
 
   // Render tool result
   const renderToolResult = (toolPart: ToolPart, index: number) => {
-    // Show loading state for tool calls without results
     if (toolPart.type === "tool-call") {
       return (
-        <div key={`tool-${toolPart.toolCallId}-${index}`} className="flex items-center gap-2 text-muted-foreground">
+        <div key={`tool-${toolPart.toolCallId}-${index}`} className="flex items-center gap-2 text-[var(--wa-text-secondary)]">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Calculating...</span>
+          <span className="text-sm">Calculating...</span>
         </div>
       );
     }
 
-    // Show error state
     if (toolPart.type === "tool-error") {
       return (
-        <Card key={`tool-${toolPart.toolCallId}-${index}`} className="bg-destructive/10 border-destructive/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 text-destructive">
+        <Card key={`tool-${toolPart.toolCallId}-${index}`} className="bg-red-50 border-red-200">
+          <CardContent className="p-2">
+            <div className="flex items-center gap-2 text-red-600">
               <Calculator className="h-4 w-4" />
-              <span className="font-medium">Error</span>
+              <span className="font-medium text-sm">Error</span>
             </div>
-            <p className="text-sm mt-1">{String(toolPart.error)}</p>
+            <p className="text-xs mt-1 text-red-600">{String(toolPart.error)}</p>
           </CardContent>
         </Card>
       );
     }
 
-    // Show tool result
     const result = toolPart.output as CalculationResult | undefined;
     if (!result) return null;
 
     if (result.error) {
       return (
-        <Card key={`tool-${toolPart.toolCallId}-${index}`} className="bg-destructive/10 border-destructive/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 text-destructive">
-              <Calculator className="h-4 w-4" />
-              <span className="font-medium">Error</span>
-            </div>
-            <p className="text-sm mt-1">{result.error}</p>
+        <Card key={`tool-${toolPart.toolCallId}-${index}`} className="bg-red-50 border-red-200">
+          <CardContent className="p-2">
+            <p className="text-xs text-red-600">{result.error}</p>
           </CardContent>
         </Card>
       );
@@ -240,15 +208,15 @@ export function ChatInterface() {
     }[result.operation] || "?";
 
     return (
-      <Card key={`tool-${toolPart.toolCallId}-${index}`} className="bg-primary/5 border-primary/20">
-        <CardContent className="p-3">
-          <div className="flex items-center gap-2 text-primary">
+      <Card key={`tool-${toolPart.toolCallId}-${index}`} className="bg-[var(--wa-header)]/10 border-[var(--wa-header)]/20">
+        <CardContent className="p-2">
+          <div className="flex items-center gap-2 text-[var(--wa-header)]">
             <Calculator className="h-4 w-4" />
-            <span className="font-medium">Calculation</span>
+            <span className="font-medium text-sm">Result</span>
           </div>
-          <div className="text-sm mt-1 font-mono">
+          <div className="text-sm mt-1 font-mono text-[var(--wa-text-primary)]">
             {result.operands[0]} {operationSymbol} {result.operands[1]} ={" "}
-            <span className="font-bold text-primary">{result.result}</span>
+            <span className="font-bold text-[var(--wa-header)]">{result.result}</span>
           </div>
         </CardContent>
       </Card>
@@ -267,17 +235,28 @@ export function ChatInterface() {
         />
       )}
 
-      <div className="flex flex-col h-full max-h-[calc(100vh-2rem)] w-full max-w-3xl mx-auto">
-        {/* Messages Area */}
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
+      <div className="flex flex-col h-screen w-full max-w-3xl mx-auto">
+        {/* WhatsApp Header */}
+        <header className="bg-[var(--wa-header)] text-white px-4 py-3 flex items-center gap-3 shadow-md">
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+            <Calculator className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <h1 className="font-semibold">AI Calculator</h1>
+            <p className="text-xs text-white/70">Online</p>
+          </div>
+        </header>
+
+        {/* Chat Messages Area */}
+        <div className="flex-1 overflow-y-auto wa-chat-bg p-4">
+          <div className="space-y-2 max-w-3xl mx-auto">
             {messages.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
-                <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">AI Calculator</p>
-                <p className="text-sm">
-                  Ask me to calculate something! Try &quot;What is 25 plus 17?&quot;
-                </p>
+              <div className="text-center py-8">
+                <div className="inline-block bg-white/80 rounded-lg px-4 py-3 shadow-sm">
+                  <p className="text-sm text-[var(--wa-text-secondary)]">
+                    Type a message or send a voice/image to calculate
+                  </p>
+                </div>
               </div>
             )}
 
@@ -285,27 +264,26 @@ export function ChatInterface() {
               const text = getMessageText(message);
               const toolParts = getToolParts(message);
               const fileParts = getFileParts(message);
-              console.log('[Chat] Rendering message:', message.id, 'role:', message.role, 'text:', text, 'toolParts:', toolParts.length, 'fileParts:', fileParts.length);
+              const isUser = message.role === "user";
 
               return (
                 <div
                   key={message.id}
-                  className={`flex ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                    className={`max-w-[85%] px-3 py-2 shadow-sm ${
+                      isUser ? "wa-bubble-user mr-2" : "wa-bubble-other ml-2"
                     }`}
+                    style={{
+                      boxShadow: "0 1px 0.5px var(--wa-bubble-shadow)",
+                    }}
                   >
                     {/* Audio attachments */}
                     {fileParts.filter(f => isAudioFile(f.mediaType)).length > 0 && (
-                      <div className="mb-2 space-y-2">
+                      <div className="mb-1">
                         {fileParts.filter(f => isAudioFile(f.mediaType)).map((_, index) => (
-                          <div key={`audio-${index}`} className="flex items-center gap-2">
+                          <div key={`audio-${index}`} className="flex items-center gap-2 text-[var(--wa-text-secondary)]">
                             <Mic className="h-4 w-4" />
                             <span className="text-sm">Voice message</span>
                           </div>
@@ -315,35 +293,43 @@ export function ChatInterface() {
 
                     {/* Image attachments */}
                     {fileParts.filter(f => isImageFile(f.mediaType)).map((file, index) => (
-                      <div key={`image-${index}`} className="mb-2">
+                      <div key={`image-${index}`} className="mb-1">
                         <img
                           src={file.url}
-                          alt={file.filename || "Uploaded image"}
-                          className="max-w-full max-h-48 rounded-md object-contain"
+                          alt={file.filename || "Image"}
+                          className="max-w-full max-h-48 rounded object-contain"
                         />
-                        {file.filename && (
-                          <p className="text-xs mt-1 opacity-75">{file.filename}</p>
-                        )}
                       </div>
                     ))}
 
                     {/* PDF attachments */}
                     {fileParts.filter(f => isPdfFile(f.mediaType)).map((file, index) => (
-                      <div key={`pdf-${index}`} className="mb-2 flex items-center gap-2">
+                      <div key={`pdf-${index}`} className="mb-1 flex items-center gap-2 text-[var(--wa-text-secondary)]">
                         <FileText className="h-5 w-5" />
-                        <span className="text-sm">{file.filename || "PDF Document"}</span>
+                        <span className="text-sm">{file.filename || "PDF"}</span>
                       </div>
                     ))}
 
-                    {/* Message content */}
-                    {text && <p className="whitespace-pre-wrap">{text}</p>}
+                    {/* Message text */}
+                    {text && (
+                      <p className="text-sm text-[var(--wa-text-primary)] whitespace-pre-wrap">
+                        {text}
+                      </p>
+                    )}
 
                     {/* Tool results */}
                     {toolParts.length > 0 && (
-                      <div className="mt-2 space-y-2">
+                      <div className="mt-2 space-y-1">
                         {toolParts.map((tool, index) => renderToolResult(tool, index))}
                       </div>
                     )}
+
+                    {/* Timestamp */}
+                    <div className="flex justify-end mt-1">
+                      <span className="text-[10px] text-[var(--wa-text-secondary)]">
+                        {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -352,76 +338,78 @@ export function ChatInterface() {
             {/* Loading indicator */}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-muted rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="wa-bubble-other ml-2 px-3 py-2 shadow-sm">
+                  <div className="flex items-center gap-2 text-[var(--wa-text-secondary)]">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Thinking...</span>
+                    <span className="text-sm">Typing...</span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Scroll anchor */}
             <div ref={scrollRef} />
           </div>
-        </ScrollArea>
+        </div>
 
-        {/* Input Area */}
-        <div className="border-t p-4">
-          {/* File Uploader Drop Zone */}
-          {showFileUploader && (
-            <div className="mb-4">
-              <FileUploader
-                onFileSelect={handleFileSelect}
-                disabled={isLoading}
-              />
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="flex gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask me to calculate something..."
-              className="min-h-[60px] resize-none"
+        {/* File Uploader Drop Zone */}
+        {showFileUploader && (
+          <div className="bg-[var(--wa-input-bg)] px-4 py-3 border-t">
+            <FileUploader
+              onFileSelect={handleFileSelect}
               disabled={isLoading}
             />
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant={showFileUploader ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setShowFileUploader(!showFileUploader)}
-                  disabled={isLoading}
-                  className="h-[28px] w-[28px]"
-                  title="Upload image or PDF"
-                >
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-                <AudioRecorder
-                  onRecordingComplete={handleAudioRecording}
-                  disabled={isLoading}
-                />
-              </div>
+          </div>
+        )}
+
+        {/* WhatsApp Input Area */}
+        <div className="bg-[var(--wa-input-bg)] px-3 py-2 flex items-center gap-2">
+          {/* Attachment Button */}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowFileUploader(!showFileUploader)}
+            disabled={isLoading}
+            className={`h-10 w-10 rounded-full hover:bg-black/5 ${showFileUploader ? 'text-[var(--wa-header)]' : 'text-[var(--wa-text-secondary)]'}`}
+          >
+            <Paperclip className="h-6 w-6" />
+          </Button>
+
+          {/* Input Field */}
+          <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2">
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type a message"
+                disabled={isLoading}
+                className="w-full bg-white rounded-full px-4 py-2.5 text-sm text-[var(--wa-text-primary)] placeholder:text-[var(--wa-text-secondary)] focus:outline-none focus:ring-1 focus:ring-[var(--wa-header)]/30"
+              />
+            </div>
+
+            {/* Mic or Send Button */}
+            {hasInput ? (
               <Button
                 type="submit"
-                size="icon"
-                disabled={!input.trim() || isLoading}
-                className="h-[28px] w-[60px]"
+                disabled={isLoading}
+                className="h-10 w-10 rounded-full bg-[var(--wa-send-btn)] hover:bg-[var(--wa-send-btn)]/90 text-white p-0"
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <Send className="h-5 w-5" />
                 )}
               </Button>
-            </div>
+            ) : (
+              <AudioRecorder
+                onRecordingComplete={handleAudioRecording}
+                disabled={isLoading}
+              />
+            )}
           </form>
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            Press Enter to send, Shift+Enter for new line, use mic for voice, or attach documents
-          </p>
         </div>
       </div>
     </>
