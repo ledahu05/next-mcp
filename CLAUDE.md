@@ -1,0 +1,29 @@
+# whatsAppToSaasPoc Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-11-28
+
+## Active Technologies
+
+- TypeScript 5.x (Strict mode) + Next.js 14+, Vercel AI SDK (`ai`, `@ai-sdk/google`, `@ai-sdk/react`), `@modelcontextprotocol/sdk`, Shadcn UI, Tailwind CSS, Zod, lucide-react (001-ai-calc-saas-poc)
+
+## Project Structure
+
+```text
+src/
+tests/
+```
+
+## Commands
+
+npm test && npm run lint
+
+## Code Style
+
+TypeScript 5.x (Strict mode): Follow standard conventions
+
+## Recent Changes
+
+- 001-ai-calc-saas-poc: Added TypeScript 5.x (Strict mode) + Next.js 14+, Vercel AI SDK (`ai`, `@ai-sdk/google`, `@ai-sdk/react`), `@modelcontextprotocol/sdk`, Shadcn UI, Tailwind CSS, Zod, lucide-react
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

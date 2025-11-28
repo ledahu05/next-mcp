@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  title: AI Calculation SaaS PoC - Chat API
+  version: 1.0.0
+  description: |
+    API contract for the AI-powered calculation chat interface.
+    Uses Vercel AI SDK streaming format for responses.
+
+servers:
+  - url: /api
+    description: Next.js API Routes
+
+paths:
+  /chat:
+    post:
+      operationId: chat
+      summary: Send a message to the AI calculation agent
+      description: |
+        Accepts text messages, audio attachments, or document attachments.
+        Returns a streaming response with AI-generated content and tool invocations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Streaming response with AI content
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream (Vercel AI SDK format)
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Array of conversation messages
+
+    Message:
+      type: object
+      required:
+        - id
+        - role
+        - content
+      properties:
+        id:
+          type: string
+          description: Unique message identifier
+        role:
+          type: string
+          enum: [user, assistant]
+          description: Message sender role
+        content:
+          type: string
+          description: Message text content
+        createdAt:
+          type: string
+          format: date-time
+          description: Message creation timestamp
+        experimental_attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Attachment'
+          description: Audio or document attachments
+
+    Attachment:
+      type: object
+      required:
+        - name
+        - contentType
+        - url
+      properties:
+        name:
+          type: string
+          description: Attachment filename
+          example: "recording.webm"
+        contentType:
+          type: string
+          description: MIME type of the attachment
+          enum:
+            - audio/webm
+            - audio/mp4
+            - audio/mpeg
+            - image/png
+            - image/jpeg
+            - image/webp
+            - application/pdf
+        url:
+          type: string
+          description: Data URL (base64 encoded) of the attachment
+          example: "data:audio/webm;base64,..."
+
+    ToolInvocation:
+      type: object
+      required:
+        - toolCallId
+        - toolName
+        - args
+        - state
+      properties:
+        toolCallId:
+          type: string
+          description: Unique identifier for the tool call
+        toolName:
+          type: string
+          enum: [add, subtract, multiply, divide]
+          description: Name of the calculation tool
+        args:
+          $ref: '#/components/schemas/CalculationArgs'
+        result:
+          $ref: '#/components/schemas/CalculationResult'
+        state:
+          type: string
+          enum: [pending, result]
+          description: Tool invocation state
+
+    CalculationArgs:
+      type: object
+      required:
+        - a
+        - b
+      properties:
+        a:
+          type: number
+          description: First operand
+        b:
+          type: number
+          description: Second operand
+
+    CalculationResult:
+      type: object
+      required:
+        - result
+        - operation
+        - operands
+      properties:
+        result:
+          type: number
+          description: Calculation result
+        operation:
+          type: string
+          enum: [add, subtract, multiply, divide]
+          description: Operation performed
+        operands:
+          type: array
+          items:
+            type: number
+          minItems: 2
+          maxItems: 2
+          description: Input operands [a, b]
+        error:
+          type: string
+          description: Error message if calculation failed
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          enum:
+            - DIVISION_BY_ZERO
+            - INVALID_INPUT
+            - PROCESSING_ERROR
+            - UNKNOWN
+          description: Error code for programmatic handling

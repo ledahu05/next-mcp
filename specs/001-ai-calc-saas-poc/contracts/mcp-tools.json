@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCP Calculation Tools",
+  "description": "Tool definitions for the Math MCP Server compatible with Vercel AI SDK",
+  "tools": [
+    {
+      "name": "add",
+      "description": "Add two numbers together and return the sum. Use this when the user wants to add, sum, or combine numbers.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "The first number to add"
+          },
+          "b": {
+            "type": "number",
+            "description": "The second number to add"
+          }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "subtract",
+      "description": "Subtract the second number from the first number. Use this when the user wants to subtract, minus, or find the difference between numbers.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "The number to subtract from (minuend)"
+          },
+          "b": {
+            "type": "number",
+            "description": "The number to subtract (subtrahend)"
+          }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "multiply",
+      "description": "Multiply two numbers together and return the product. Use this when the user wants to multiply, times, or find the product of numbers.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "The first number to multiply"
+          },
+          "b": {
+            "type": "number",
+            "description": "The second number to multiply"
+          }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "divide",
+      "description": "Divide the first number by the second number. Use this when the user wants to divide, split, or find the quotient of numbers. Will return an error if dividing by zero.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "The dividend (number to be divided)"
+          },
+          "b": {
+            "type": "number",
+            "description": "The divisor (number to divide by, must not be zero)"
+          }
+        },
+        "required": ["a", "b"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
