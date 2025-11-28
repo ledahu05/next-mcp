@@ -134,7 +134,14 @@ export function useAudioRecorder(options?: UseAudioRecorderOptions): UseAudioRec
    * Monitor audio levels for silence detection
    */
   const monitorAudioLevel = useCallback(() => {
-    if (!analyserRef.current || state !== 'recording') {
+    if (!analyserRef.current) {
+      console.log('[Audio] No analyser ref, stopping monitor');
+      return;
+    }
+
+    // Check mediaRecorder state directly instead of React state
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') {
+      console.log('[Audio] MediaRecorder not recording, stopping monitor');
       return;
     }
 
@@ -151,16 +158,23 @@ export function useAudioRecorder(options?: UseAudioRecorderOptions): UseAudioRec
       const now = Date.now();
       const recordingDuration = recordingStartRef.current ? now - recordingStartRef.current : 0;
 
+      // Log every second approximately (every 60 frames at 60fps)
+      if (Math.random() < 0.02) {
+        console.log('[Audio] Level:', Math.round(average), 'Threshold:', silenceOptions.silenceThreshold, 'Recording duration:', recordingDuration, 'ms');
+      }
+
       // Only check for silence after minimum recording time
       if (recordingDuration >= silenceOptions.minRecordingTime) {
         if (average < silenceOptions.silenceThreshold) {
           // Start tracking silence
           if (silenceStartRef.current === null) {
             silenceStartRef.current = now;
+            console.log('[Audio] Silence started at', now);
           } else {
             // Check if silence duration exceeded
             const silenceDuration = now - silenceStartRef.current;
             if (silenceDuration >= silenceOptions.silenceDuration) {
+              console.log('[Audio] Silence duration exceeded! Stopping recording after', silenceDuration, 'ms of silence');
               // Auto-stop recording
               if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
                 mediaRecorderRef.current.stop();
@@ -170,6 +184,9 @@ export function useAudioRecorder(options?: UseAudioRecorderOptions): UseAudioRec
           }
         } else {
           // Reset silence tracking when sound detected
+          if (silenceStartRef.current !== null) {
+            console.log('[Audio] Sound detected, resetting silence tracker. Level:', Math.round(average));
+          }
           silenceStartRef.current = null;
         }
       }
@@ -177,7 +194,7 @@ export function useAudioRecorder(options?: UseAudioRecorderOptions): UseAudioRec
 
     // Continue monitoring
     animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
-  }, [state, silenceOptions]);
+  }, [silenceOptions]);
 
   /**
    * Start recording audio from the microphone
@@ -281,6 +298,7 @@ export function useAudioRecorder(options?: UseAudioRecorderOptions): UseAudioRec
 
       // Start monitoring audio levels
       if (silenceOptions.enabled) {
+        console.log('[Audio] Starting silence detection monitoring. Threshold:', silenceOptions.silenceThreshold, 'Duration:', silenceOptions.silenceDuration, 'ms');
         animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
       }
     } catch (err) {
