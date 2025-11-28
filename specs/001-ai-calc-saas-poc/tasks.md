@@ -87,16 +87,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Create use-audio-recorder.ts custom hook with MediaRecorder API in hooks/use-audio-recorder.ts
-- [ ] T028 [US2] Implement startRecording, stopRecording, and state management in hooks/use-audio-recorder.ts
-- [ ] T029 [US2] Handle microphone permission requests and errors in hooks/use-audio-recorder.ts
-- [ ] T030 [US2] Create audio-recorder.tsx component with microphone button in components/audio-recorder.tsx
-- [ ] T031 [US2] Implement recording indicator (visual feedback) during recording in components/audio-recorder.tsx
-- [ ] T032 [US2] Convert audio blob to base64 data URL on recording complete in components/audio-recorder.tsx
-- [ ] T033 [US2] Integrate AudioRecorder into ChatInterface in components/chat-interface.tsx
-- [ ] T034 [US2] Send audio as experimental_attachments via useChat append in components/chat-interface.tsx
-- [ ] T035 [US2] Update system prompt to handle audio transcription in app/api/chat/route.ts
-- [ ] T036 [US2] Add toast notification for microphone permission denial in components/audio-recorder.tsx
+- [x] T027 [US2] Create use-audio-recorder.ts custom hook with MediaRecorder API in hooks/use-audio-recorder.ts
+- [x] T028 [US2] Implement startRecording, stopRecording, and state management in hooks/use-audio-recorder.ts
+- [x] T029 [US2] Handle microphone permission requests and errors in hooks/use-audio-recorder.ts
+- [x] T030 [US2] Create audio-recorder.tsx component with microphone button in components/audio-recorder.tsx
+- [x] T031 [US2] Implement recording indicator (visual feedback) during recording in components/audio-recorder.tsx
+- [x] T032 [US2] Convert audio blob to base64 data URL on recording complete in components/audio-recorder.tsx
+- [x] T033 [US2] Integrate AudioRecorder into ChatInterface in components/chat-interface.tsx
+- [x] T034 [US2] Send audio as files via useChat sendMessage in components/chat-interface.tsx
+- [x] T035 [US2] Update system prompt to handle audio transcription in app/api/chat/route.ts
+- [x] T036 [US2] Add toast notification for microphone permission denial in components/audio-recorder.tsx
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
