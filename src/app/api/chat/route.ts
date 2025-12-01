@@ -1,12 +1,15 @@
 /**
  * Chat API Route
  * Handles multimodal input (text, audio, documents) and streams responses
+ * PROTECTED: Requires valid session (enforced by middleware + route validation)
  */
 
 import { streamText, convertToModelMessages, stepCountIs } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { calculationTools } from '@/lib/mcp-server';
 import type { ErrorResponse } from '@/lib/types';
+import { validateSession } from '@/lib/auth/session';
+import { unauthorized } from '@/lib/auth/errors';
 
 // Initialize Google Gemini provider
 const google = createGoogleGenerativeAI({
@@ -47,6 +50,12 @@ Always be helpful and explain your calculations clearly.`;
 
 export async function POST(request: Request) {
   try {
+    // Validate session (middleware does basic check, this does full validation)
+    const session = await validateSession();
+    if (!session.authenticated) {
+      return unauthorized();
+    }
+
     const { messages } = await request.json();
     console.log('[API] Received messages:', JSON.stringify(messages, null, 2));
 

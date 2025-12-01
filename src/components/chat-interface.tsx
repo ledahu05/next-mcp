@@ -15,6 +15,7 @@ import {
     type FormEvent
 } from 'react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -31,6 +32,7 @@ import {
     type FileUploadResult
 } from '@/components/file-uploader';
 import { FilePreviewOverlay } from '@/components/file-preview-overlay';
+import { UserMenu } from '@/components/user-menu';
 import type { CalculationResult } from '@/lib/types';
 
 export function ChatInterface() {
@@ -41,17 +43,31 @@ export function ChatInterface() {
     const [pendingFile, setPendingFile] = useState<FileUploadResult | null>(
         null
     );
+    const [showAuthPrompt, setShowAuthPrompt] = useState(false);
 
     const { messages, status, sendMessage, error } = useChat({
         onError: (err) => {
-            toast.error('Calculation Error', {
-                description: err.message || 'An unexpected error occurred'
-            });
+            // Check if it's an authentication error (401)
+            if (err.message?.includes('Authentication required') ||
+                err.message?.includes('401') ||
+                err.message?.includes('Unauthorized')) {
+                setShowAuthPrompt(true);
+                toast.error('Authentication Required', {
+                    description: 'Please request access to use the AI Chat feature.',
+                    action: {
+                        label: 'Request Access',
+                        onClick: () => window.location.href = '/access-request'
+                    }
+                });
+            } else {
+                toast.error('Calculation Error', {
+                    description: err.message || 'An unexpected error occurred'
+                });
+            }
         }
     });
 
     const isLoading = status === 'streaming' || status === 'submitted';
-    const hasInput = input.trim().length > 0;
 
     // Show error toast when error changes
     useEffect(() => {
@@ -301,18 +317,54 @@ export function ChatInterface() {
                         <h1 className='font-semibold'>AI Calculator</h1>
                         <p className='text-xs text-white/70'>Online</p>
                     </div>
+                    <UserMenu />
                 </header>
 
                 {/* Chat Messages Area */}
                 <div className='flex-1 overflow-y-auto wa-chat-bg p-4'>
                     <div className='space-y-2 max-w-3xl mx-auto'>
-                        {messages.length === 0 && (
+                        {messages.length === 0 && !showAuthPrompt && (
                             <div className='text-center py-8'>
                                 <div className='inline-block bg-white/80 rounded-lg px-4 py-3 shadow-sm'>
                                     <p className='text-sm text-[var(--wa-text-secondary)]'>
                                         Type a message or send a voice/image to
                                         calculate
                                     </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Authentication required prompt */}
+                        {showAuthPrompt && (
+                            <div className='text-center py-8'>
+                                <div className='inline-block bg-amber-50 border border-amber-200 rounded-lg px-6 py-4 shadow-sm max-w-sm'>
+                                    <div className='text-amber-600 mb-2'>
+                                        <svg
+                                            className='mx-auto h-10 w-10'
+                                            fill='none'
+                                            stroke='currentColor'
+                                            viewBox='0 0 24 24'
+                                        >
+                                            <path
+                                                strokeLinecap='round'
+                                                strokeLinejoin='round'
+                                                strokeWidth={1.5}
+                                                d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
+                                            />
+                                        </svg>
+                                    </div>
+                                    <p className='text-sm font-medium text-amber-800 mb-1'>
+                                        Authentication Required
+                                    </p>
+                                    <p className='text-xs text-amber-700 mb-3'>
+                                        Request access to use the AI Chat feature.
+                                    </p>
+                                    <Link
+                                        href='/access-request'
+                                        className='inline-block px-4 py-2 bg-amber-600 text-white text-sm rounded-md hover:bg-amber-700 transition-colors'
+                                    >
+                                        Request Access
+                                    </Link>
                                 </div>
                             </div>
                         )}
@@ -502,25 +554,22 @@ export function ChatInterface() {
                             />
                         </div>
 
-                        {/* Mic or Send Button */}
-                        {hasInput ? (
-                            <Button
-                                type='submit'
-                                disabled={isLoading}
-                                className='h-10 w-10 rounded-full bg-[var(--wa-send-btn)] hover:bg-[var(--wa-send-btn)]/90 text-white p-0'
-                            >
-                                {isLoading ? (
-                                    <Loader2 className='h-5 w-5 animate-spin' />
-                                ) : (
-                                    <Send className='h-5 w-5' />
-                                )}
-                            </Button>
-                        ) : (
-                            <AudioRecorder
-                                onRecordingComplete={handleAudioRecording}
-                                disabled={isLoading}
-                            />
-                        )}
+                        {/* Mic and Send Button */}
+                        <AudioRecorder
+                            onRecordingComplete={handleAudioRecording}
+                            disabled={isLoading}
+                        />
+                        <Button
+                            type='submit'
+                            disabled={isLoading}
+                            className='h-10 w-10 rounded-full bg-[var(--wa-send-btn)] hover:bg-[var(--wa-send-btn)]/90 text-white p-0'
+                        >
+                            {isLoading ? (
+                                <Loader2 className='h-5 w-5 animate-spin' />
+                            ) : (
+                                <Send className='h-5 w-5' />
+                            )}
+                        </Button>
                     </form>
                 </div>
             </div>

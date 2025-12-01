@@ -2,22 +2,17 @@
   ============================================================================
   SYNC IMPACT REPORT
   ============================================================================
-  Version Change: N/A (initial) → 1.0.0
+  Version Change: 1.1.0 → 1.2.0
 
   Modified Principles:
-  - [NEW] I. Serverless-First Architecture
-  - [NEW] II. MCP Protocol Compliance
-  - [NEW] III. Type Safety (NON-NEGOTIABLE)
-  - [NEW] IV. Component Standards
-  - [NEW] V. Graceful Error Handling
+  - VI. Authentication & Access Control: Added LLM token protection rule and
+    public-by-default rule; changed "routes" to "endpoints" for consistency
 
   Added Sections:
-  - Tech Stack
-  - File Structure
-  - Governance
+  - None
 
   Removed Sections:
-  - None (initial constitution)
+  - None
 
   Templates Requiring Updates:
   - .specify/templates/plan-template.md ✅ aligned (no changes needed)
@@ -83,6 +78,21 @@ predictable UI behavior across the application.
 **Rationale**: Explicit error handling improves debugging and user experience
 during the proof-of-concept validation phase.
 
+### VI. Authentication & Access Control
+
+-   All protected endpoints MUST verify session validity before processing requests.
+-   All endpoints involving the use of LLM tokens MUST be protected.
+-   All other routes and endpoints that do not consume LLM tokens SHOULD be public.
+-   Sessions MUST use HttpOnly, Secure (in production), and SameSite cookies.
+-   Authentication tokens MUST be cryptographically secure (minimum 256-bit
+    entropy).
+-   Magic links and tokens MUST be single-use and time-limited.
+-   Silent authentication failures are prohibited - users MUST receive clear
+    feedback.
+
+**Rationale**: Secure access control protects Gemini API tokens from unauthorized
+usage while maintaining a simple admin-approval workflow for the proof-of-concept.
+
 ## Tech Stack
 
 | Category         | Technology                                              |
@@ -132,5 +142,6 @@ Before merging any feature:
 1. Verify Principle III (Type Safety) - no `any` types.
 2. Verify Principle IV (Component Standards) - functional components and Shadcn UI.
 3. Verify Principle V (Error Handling) - Toast notifications and Try/Catch blocks.
+4. Verify Principle VI (Authentication) - session validation, secure cookies, token entropy, LLM endpoint protection.
 
-**Version**: 1.0.0 | **Ratified**: 2025-01-28 | **Last Amended**: 2025-01-28
+**Version**: 1.2.0 | **Ratified**: 2025-01-28 | **Last Amended**: 2025-11-30
