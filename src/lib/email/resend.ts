@@ -56,12 +56,12 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 }
 
 /**
- * Send access request notification to admin
+ * Send access request notification to admin with magic link
+ * Admin forwards this email to grant access
  */
 export async function sendAdminNotification(
   userEmail: string,
-  approveUrl: string,
-  rejectUrl: string
+  magicLinkUrl: string
 ): Promise<SendEmailResult> {
   const adminEmail = process.env.ADMIN_EMAIL;
 
@@ -73,16 +73,27 @@ export async function sendAdminNotification(
     <h2>New Access Request</h2>
     <p>A user has requested access to the AI Chat feature.</p>
     <p><strong>Email:</strong> ${userEmail}</p>
+
+    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e5e5;" />
+
+    <h3>To grant access:</h3>
+    <p>Forward this email to <strong>${userEmail}</strong> or share the link below:</p>
     <p>
-      <a href="${approveUrl}" style="display:inline-block;padding:12px 24px;background:#22c55e;color:white;text-decoration:none;border-radius:6px;margin-right:12px;">
-        Approve
-      </a>
-      <a href="${rejectUrl}" style="display:inline-block;padding:12px 24px;background:#ef4444;color:white;text-decoration:none;border-radius:6px;">
-        Reject
+      <a href="${magicLinkUrl}" style="display:inline-block;padding:12px 24px;background:#3b82f6;color:white;text-decoration:none;border-radius:6px;">
+        Access AI Chat
       </a>
     </p>
     <p style="color:#666;font-size:12px;">
-      Click approve to send the user a magic link, or reject to deny access.
+      Magic Link: <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">${magicLinkUrl}</code>
+    </p>
+    <p style="color:#666;font-size:12px;">
+      This link is valid for 24 hours and can only be used once.
+    </p>
+
+    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e5e5;" />
+
+    <p style="color:#999;font-size:11px;">
+      To reject this request, simply ignore this email.
     </p>
   `;
 

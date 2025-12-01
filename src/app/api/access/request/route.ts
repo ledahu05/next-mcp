@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
-import { generateTokenPair, hashToken } from "@/lib/auth/tokens";
-import { badRequest, conflict, serverError } from "@/lib/auth/errors";
+import { generateTokenPair, getMagicLinkExpiry } from "@/lib/auth/tokens";
+import { badRequest, serverError } from "@/lib/auth/errors";
 import { sendAdminNotification } from "@/lib/email/resend";
 import { getAppUrl } from "@/lib/auth/session";
 
 /**
  * POST /api/access/request
  * Submit a new access request for protected API endpoints.
+ * Generates magic link immediately and sends to admin for forwarding.
  */
 export async function POST(request: Request) {
   try {
@@ -26,49 +27,43 @@ export async function POST(request: Request) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check for existing pending request
-    const existingRequest = await prisma.accessRequest.findFirst({
-      where: {
+    // Generate magic link immediately
+    const magicLinkPair = generateTokenPair();
+    const expiresAt = getMagicLinkExpiry();
+
+    // Create magic link record
+    const magicLink = await prisma.magicLink.create({
+      data: {
+        tokenHash: magicLinkPair.tokenHash,
         email: normalizedEmail,
-        status: "PENDING",
+        expiresAt,
       },
     });
 
-    if (existingRequest) {
-      return conflict("An access request is already pending for this email");
-    }
-
-    // Generate tokens for approve/reject links
-    const approveTokenPair = generateTokenPair();
-    const rejectTokenPair = generateTokenPair();
-
-    // Create access request
+    // Create access request linked to magic link
     await prisma.accessRequest.create({
       data: {
         email: normalizedEmail,
-        status: "PENDING",
-        approveToken: hashToken(approveTokenPair.token),
-        rejectToken: hashToken(rejectTokenPair.token),
+        magicLinkId: magicLink.id,
       },
     });
 
-    // Build approve/reject URLs
+    // Build magic link URL
     const appUrl = getAppUrl();
-    const approveUrl = `${appUrl}/api/access/approve/${approveTokenPair.token}`;
-    const rejectUrl = `${appUrl}/api/access/reject/${rejectTokenPair.token}`;
+    const magicLinkUrl = `${appUrl}/api/auth/magic/${magicLinkPair.token}`;
 
-    // Send admin notification email
-    const emailResult = await sendAdminNotification(normalizedEmail, approveUrl, rejectUrl);
+    // Send admin notification email with magic link
+    const emailResult = await sendAdminNotification(normalizedEmail, magicLinkUrl);
 
     if (!emailResult.success) {
       console.error("Failed to send admin notification:", emailResult.error);
       // Still return success to user - request is recorded
-      // Admin can check database directly if email fails
+      // Admin can check Resend dashboard if email fails
     }
 
     return NextResponse.json(
       {
-        message: "Access request submitted. You will receive an email when approved.",
+        message: "Access request submitted. The administrator will review your request.",
       },
       { status: 201 }
     );
