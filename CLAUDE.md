@@ -31,3 +31,4 @@ TypeScript 5.x (Strict mode): Follow standard conventions
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
+- never commit on the main branch, always create a new branch
