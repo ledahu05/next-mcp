@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Simplified flow: Magic link generated immediately on access request
+// Admin receives email with magic link and forwards it manually to user
+model AccessRequest {
+  id        String   @id @default(cuid())
+  email     String
+  createdAt DateTime @default(now())
+
+  // Link to the magic link generated for this request
+  magicLinkId String?    @unique
+  magicLink   MagicLink? @relation(fields: [magicLinkId], references: [id])
+}
+
+model MagicLink {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  email     String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  // Back-reference to access request
+  accessRequest AccessRequest?
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  email     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}

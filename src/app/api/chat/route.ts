@@ -1,12 +1,15 @@
 /**
  * Chat API Route
  * Handles multimodal input (text, audio, documents) and streams responses
+ * PROTECTED: Requires valid session (enforced by middleware + route validation)
  */
 
 import { streamText, convertToModelMessages, stepCountIs } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { calculationTools } from '@/lib/mcp-server';
 import type { ErrorResponse } from '@/lib/types';
+import { validateSession } from '@/lib/auth/session';
+import { unauthorized } from '@/lib/auth/errors';
 
 // Initialize Google Gemini provider
 const google = createGoogleGenerativeAI({
@@ -24,7 +27,15 @@ IMPORTANT INSTRUCTIONS:
    - Extract the numbers and mathematical operation from the speech
    - Use the appropriate calculation tool to perform the operation
    - Confirm what you heard (e.g., "I heard you say 'add 5 and 3'")
-3. For document/image input: Extract the relevant numbers from the document, then perform the requested calculation.
+3. For DOCUMENT/IMAGE input:
+   - Carefully analyze the image or PDF document
+   - Look for mathematical expressions (numbers with operators like +, -, ×, ÷, *, /)
+   - If you see a clear mathematical expression (e.g., "3 + 5", "10 × 2"), IMMEDIATELY use the appropriate calculation tool - do NOT ask for confirmation
+   - Extract ALL numbers visible in the document (prices, quantities, totals, etc.)
+   - For invoices/receipts: identify line items, subtotals, taxes, and totals
+   - If the user asks a specific question (e.g., "What is the total?"), perform the appropriate calculation
+   - Only ask what calculation they'd like if there are just numbers without any visible operators
+   - Use the calculation tools to perform any math operations
 4. Always explain what operation you performed and show the calculation steps.
 5. If division by zero is attempted, explain that it's undefined.
 6. For non-mathematical queries, respond conversationally without using the tools.
@@ -39,6 +50,12 @@ Always be helpful and explain your calculations clearly.`;
 
 export async function POST(request: Request) {
   try {
+    // Validate session (middleware does basic check, this does full validation)
+    const session = await validateSession();
+    if (!session.authenticated) {
+      return unauthorized();
+    }
+
     const { messages } = await request.json();
     console.log('[API] Received messages:', JSON.stringify(messages, null, 2));
 

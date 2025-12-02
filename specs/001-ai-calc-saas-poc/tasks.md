@@ -110,16 +110,16 @@
 
 ### Implementation for User Story 3
 
-- [ ] T037 [US3] Create file-uploader.tsx component with drag-and-drop area in components/file-uploader.tsx
-- [ ] T038 [US3] Implement file input for click-to-upload in components/file-uploader.tsx
-- [ ] T039 [US3] Validate accepted file types (JPEG, PNG, PDF) in components/file-uploader.tsx
-- [ ] T040 [US3] Convert selected file to base64 data URL in components/file-uploader.tsx
-- [ ] T041 [US3] Display file preview thumbnail after selection in components/file-uploader.tsx
-- [ ] T042 [US3] Integrate FileUploader into ChatInterface in components/chat-interface.tsx
-- [ ] T043 [US3] Send document as experimental_attachments via useChat in components/chat-interface.tsx
-- [ ] T044 [US3] Update system prompt to extract numbers from documents in app/api/chat/route.ts
-- [ ] T045 [US3] Add toast notification for unsupported file formats in components/file-uploader.tsx
-- [ ] T046 [US3] Handle unreadable document errors with user-friendly message in components/file-uploader.tsx
+- [x] T037 [US3] Create file-uploader.tsx component with drag-and-drop area in components/file-uploader.tsx
+- [x] T038 [US3] Implement file input for click-to-upload in components/file-uploader.tsx
+- [x] T039 [US3] Validate accepted file types (JPEG, PNG, PDF) in components/file-uploader.tsx
+- [x] T040 [US3] Convert selected file to base64 data URL in components/file-uploader.tsx
+- [x] T041 [US3] Display file preview thumbnail after selection in components/file-uploader.tsx
+- [x] T042 [US3] Integrate FileUploader into ChatInterface in components/chat-interface.tsx
+- [x] T043 [US3] Send document as experimental_attachments via useChat in components/chat-interface.tsx
+- [x] T044 [US3] Update system prompt to extract numbers from documents in app/api/chat/route.ts
+- [x] T045 [US3] Add toast notification for unsupported file formats in components/file-uploader.tsx
+- [x] T046 [US3] Handle unreadable document errors with user-friendly message in components/file-uploader.tsx
 
 **Checkpoint**: All user stories should now be independently functional
 
